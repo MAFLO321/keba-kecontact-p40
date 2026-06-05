@@ -17,8 +17,9 @@ dependencies = ["aiohttp>=3.9"]
 Homepage = "https://github.com/lpostiglione/keba-kecontact-p40"
 Issues = "https://github.com/lpostiglione/keba-kecontact-p40/issues"
 
+# aiohttp is capped only for the test env: aioresponses does not yet support aiohttp 3.13+.
 [project.optional-dependencies]
-test = ["pytest>=8", "pytest-asyncio>=0.23", "aioresponses>=0.7.6", "mypy>=1.10", "ruff>=0.5"]
+test = ["pytest>=8", "pytest-asyncio>=0.23", "aioresponses>=0.7.6", "aiohttp<3.13", "mypy>=1.10", "ruff>=0.5"]
 
 [tool.setuptools.package-data]
 keba_kecontact_p40 = ["py.typed"]
