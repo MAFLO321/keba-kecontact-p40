@@ -122,3 +122,64 @@ class KebaP40Client:
         """Return load-management current bounds."""
         data = await self._request_json("GET", "/v2/configs/lmgmt")
         return LoadManagement.from_api(data)
+
+    _ALL_DAYS = (
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY",
+        "SUNDAY",
+    )
+
+    async def start_charging(self, serial: str) -> None:
+        """Start a charging session."""
+        await self._request("POST", f"/v2/wallboxes/{serial}/start-charging")
+
+    async def stop_charging(self, serial: str) -> None:
+        """Stop the active charging session."""
+        await self._request("POST", f"/v2/wallboxes/{serial}/stop-charging")
+
+    async def set_phases(self, serial: str, number_of_phases: int) -> None:
+        """Switch between single- (1) and three-phase (3) charging."""
+        if number_of_phases not in (1, 3):
+            raise ValueError(f"number_of_phases must be 1 or 3, got {number_of_phases}")
+        await self._request(
+            "POST",
+            f"/v2/wallboxes/{serial}/phase-toggle",
+            params={"numberOfPhases": number_of_phases},
+        )
+
+    async def set_availability(self, serial: str, available: bool) -> None:
+        """Mark the wallbox available or unavailable."""
+        await self._request(
+            "POST",
+            f"/v2/wallboxes/{serial}/change-availability",
+            json={"available": available},
+        )
+
+    async def lock(self, serial: str) -> None:
+        """Activate the permanently-locked socket feature."""
+        await self._request("POST", f"/v2/wallboxes/{serial}/permanently-lock")
+
+    async def unlock(self, serial: str) -> None:
+        """Unlock the socket / release the connector."""
+        await self._request("POST", f"/v2/wallboxes/{serial}/unlock")
+
+    async def set_max_current(self, milliamps: int) -> None:
+        """Set the chargepoint max-current limit (OCPP ChargePointMaxProfile)."""
+        await self._request(
+            "POST",
+            "/v2/profiles/chargepointmaxprofilezero",
+            json={
+                "profileItems": [
+                    {
+                        "maxCurrentOffered": milliamps,
+                        "startTime": "00:00:00",
+                        "stopTime": "24:00:00",
+                        "daysOfWeek": list(self._ALL_DAYS),
+                    }
+                ]
+            },
+        )
