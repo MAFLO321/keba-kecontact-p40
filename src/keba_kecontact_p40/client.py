@@ -7,7 +7,7 @@ from typing import Any
 import aiohttp
 
 from .exceptions import KebaP40AuthError, KebaP40ConnectionError, KebaP40Error
-from .models import LoadManagement, Wallbox
+from .models import parse_state, LoadManagement, Wallbox, WallboxState
 
 _TIMEOUT = aiohttp.ClientTimeout(total=10)
 
@@ -118,6 +118,11 @@ class KebaP40Client:
         data = await self._request_json("GET", f"/v2/wallboxes/{serial}")
         return Wallbox.from_api(data)
 
+    async def get_wallbox_state(self, serial: str) -> WallboxState | None:
+        """Return wallbox state by serial number."""
+        data = await self._request_json("GET", f"/v2/wallboxes/{serial}/state")
+        return parse_state(data.get("state"))
+
     async def get_load_management(self) -> LoadManagement:
         """Return load-management current bounds."""
         data = await self._request_json("GET", "/v2/configs/lmgmt")
@@ -137,9 +142,27 @@ class KebaP40Client:
         """Start a charging session."""
         await self._request("POST", f"/v2/wallboxes/{serial}/start-charging")
 
+    async def start_charging_sync(self, serial: str, timeout: float | int | None = None) -> WallboxState | None:
+        """Start a charging session and return wallbox status."""
+        data = await self._request_json(
+            "POST",
+            f"/v2/wallboxes/{serial}/start-charging-sync",
+            params={"timeout": timeout} if timeout is not None else None,
+        )
+        return parse_state(data.get("state"))
+
     async def stop_charging(self, serial: str) -> None:
         """Stop the active charging session."""
         await self._request("POST", f"/v2/wallboxes/{serial}/stop-charging")
+
+    async def stop_charging_sync(self, serial: str, timeout: float | int | None = None) -> WallboxState | None:
+        """Stop the active charging session and return wallbox status."""
+        data = await self._request_json(
+            "POST",
+            f"/v2/wallboxes/{serial}/stop-charging-sync",
+            params={"timeout": timeout} if timeout is not None else None,
+        )
+        return parse_state(data.get("state"))
 
     async def set_phases(self, serial: str, number_of_phases: int) -> None:
         """Switch between single- (1) and three-phase (3) charging."""
